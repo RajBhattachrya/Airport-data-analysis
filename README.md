@@ -23,4 +23,4 @@ This project analyzes airport-related data using SQL. It includes schema design,
 ## 🙋‍♂️ About Me
 Created by **RAJ**, a data enthusiast focused on building clean SQL schemas and extracting meaningful insights from real-world datasets.
 
-Connect with me on [LinkedIn]https://www.linkedin.com/in/raj-bhattacharya-33411b372?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app) or explore more projects in my [GitHub portfolio](https://github.com/RajBhattachrya).
+Connect with me on [LinkedIn](https://www.linkedin.com/in/raj-bhattacharya-33411b372?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app) or explore more projects in my [GitHub portfolio](https://github.com/RajBhattachrya).
