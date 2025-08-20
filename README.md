@@ -10,7 +10,7 @@ This project analyzes airport-related data using SQL. It includes schema design,
 
 ## 🔍 Sample Queries
 - 1.Count how often each route (origin → destination) appears.
-- Moat busiest airports
+- Most busiest airports
 - longest flight routes
 - Identify routes with the highest number of flights
 
