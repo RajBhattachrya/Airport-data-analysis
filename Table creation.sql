@@ -1,0 +1,218 @@
+create database Flight_analysis;
+use Flight_analysis;
+select * from meta_data;
+
+CREATE TABLE Airline (
+    AIRLINE_ID INT PRIMARY KEY,
+    UNIQUE_CARRIER VARCHAR(10),
+    UNIQUE_CARRIER_NAME VARCHAR(100),
+    UNIQUE_CARRIER_ENTITY VARCHAR(10)
+);
+
+CREATE TABLE Airport (
+    AIRPORT_ID INT PRIMARY KEY,
+    AIRPORT_SEQ_ID INT,
+    CITY_MARKET_ID INT,
+    AIRPORT_CODE VARCHAR(10),
+    CITY_NAME VARCHAR(100),
+    STATE_ABR CHAR(2),
+    STATE_FIPS INT,
+    STATE_NM VARCHAR(100),
+    WAC INT
+);
+
+CREATE TABLE Flight (
+    FLIGHT_ID INT AUTO_INCREMENT PRIMARY KEY,
+    AIRLINE_ID INT,
+    ORIGIN_AIRPORT_ID INT,
+    DEST_AIRPORT_ID INT,
+    DISTANCE FLOAT,
+    DISTANCE_GROUP INT,
+    YEAR INT,
+    QUARTER INT,
+    MONTH INT,
+    CLASS CHAR(1),
+    FOREIGN KEY (AIRLINE_ID) REFERENCES Airline(AIRLINE_ID),
+    FOREIGN KEY (ORIGIN_AIRPORT_ID) REFERENCES Airport(AIRPORT_ID),
+    FOREIGN KEY (DEST_AIRPORT_ID) REFERENCES Airport(AIRPORT_ID)
+);
+
+CREATE TABLE FlightMetrics (
+    FLIGHT_ID INT,
+    PASSENGERS FLOAT,
+    FREIGHT FLOAT,
+    MAIL FLOAT,
+    FOREIGN KEY (FLIGHT_ID) REFERENCES Flight(FLIGHT_ID)
+);
+
+CREATE TABLE City (
+	City_id INT AUTO_INCREMENT PRIMARY KEY,
+    CityName VARCHAR(100),
+    STATE_ABR CHAR(2),
+    State_NM varchar(100) 
+    );
+    
+    
+INSERT ignore INTO Airline (AIRLINE_ID, UNIQUE_CARRIER, UNIQUE_CARRIER_NAME, UNIQUE_CARRIER_ENTITY)
+SELECT DISTINCT
+    AIRLINE_ID,
+    UNIQUE_CARRIER,
+    UNIQUE_CARRIER_NAME,
+    UNIQUE_CARRIER_ENTITY
+FROM Meta_Data
+where AIRLINE_ID is not null;
+
+select * from airline;
+
+select distinct airline_id from airline;
+
+select * from meta_data;
+
+select * from airport;
+
+INSERT INTO Airport (
+    AIRPORT_ID, AIRPORT_SEQ_ID, CITY_MARKET_ID, AIRPORT_CODE,
+    CITY_NAME, STATE_ABR, STATE_FIPS, STATE_NM, WAC
+)
+SELECT DISTINCT
+    ORIGIN_AIRPORT_ID,
+    ORIGIN_AIRPORT_SEQ_ID,
+    ORIGIN_CITY_MARKET_ID,
+    ORIGIN,
+    ORIGIN_CITY_NAME,
+    ORIGIN_STATE_ABR,
+    ORIGIN_STATE_FIPS,
+    ORIGIN_STATE_NM,
+    ORIGIN_WAC
+FROM Meta_Data;
+
+INSERT INTO Airport (
+    AIRPORT_ID, AIRPORT_SEQ_ID, CITY_MARKET_ID, AIRPORT_CODE,
+    CITY_NAME, STATE_ABR, STATE_FIPS, STATE_NM, WAC
+)
+SELECT DISTINCT
+    DEST_AIRPORT_ID,
+    DEST_AIRPORT_SEQ_ID,
+    DEST_CITY_MARKET_ID,
+    DEST,
+    DEST_CITY_NAME,
+    DEST_STATE_ABR,
+    DEST_STATE_FIPS,
+    DEST_STATE_NM,
+    DEST_WAC
+FROM Meta_Data
+where DEST_AIRPORT_ID NOT IN (
+Select AIRPORT_ID FROM Airport
+);
+
+select * from airport;
+
+INSERT INTO Flight (
+    AIRLINE_ID, ORIGIN_AIRPORT_ID, DEST_AIRPORT_ID,
+    DISTANCE, DISTANCE_GROUP,
+    YEAR, QUARTER, MONTH, CLASS
+)
+SELECT
+    AIRLINE_ID,
+    ORIGIN_AIRPORT_ID,
+    DEST_AIRPORT_ID,
+    DISTANCE,
+    DISTANCE_GROUP,
+    YEAR,
+    QUARTER,
+    MONTH,
+    CLASS
+FROM Meta_Data;
+
+select * from flight;
+
+
+
+
+
+
+
+INSERT INTO City (CityName, STATE_ABR, State_NM)
+SELECT DISTINCT
+    CITY_NAME,
+    STATE_ABR,
+    STATE_NM
+FROM Airport;
+
+select * from city;
+
+
+INSERT INTO FlightMetrics (
+    FLIGHT_ID, PASSENGERS, FREIGHT, MAIL
+)
+SELECT
+    f.FLIGHT_ID,
+    m.PASSENGERS,
+    CAST(COALESCE(NULLIF(m.FREIGHT, ''), 0) AS DECIMAL(15,2)),
+    m.MAIL
+FROM Meta_Data m
+JOIN Flight f
+  ON f.AIRLINE_ID = m.AIRLINE_ID
+ AND f.ORIGIN_AIRPORT_ID = m.ORIGIN_AIRPORT_ID
+ AND f.DEST_AIRPORT_ID = m.DEST_AIRPORT_ID
+ AND f.YEAR = m.YEAR
+ AND f.MONTH = m.MONTH
+ AND f.QUARTER = m.QUARTER
+ AND f.DISTANCE = m.DISTANCE;
+
+### Data Analysis
+
+### Route wise Flight analysis
+
+use Flight_analysis;
+
+SELECT 
+    f.ORIGIN_AIRPORT_ID,
+    f.DEST_AIRPORT_ID,
+    a1.CITY_NAME AS ORIGIN_CITY,
+    a2.CITY_NAME AS DEST_CITY,
+    SUM(fm.PASSENGERS) AS TOTAL_PASSENGERS
+FROM Flight f
+JOIN Flightmetrics fm ON f.FLIGHT_ID = fm.FLIGHT_ID
+JOIN Airport a1 ON f.ORIGIN_AIRPORT_ID = a1.AIRPORT_ID
+JOIN Airport a2 ON f.DEST_AIRPORT_ID = a2.AIRPORT_ID
+GROUP BY f.ORIGIN_AIRPORT_ID, f.DEST_AIRPORT_ID
+ORDER BY TOTAL_PASSENGERS DESC
+limit 10;
+
+## Total Passengers Served in the duration.
+
+SELECT 
+    f.YEAR,
+    f.MONTH,
+    round(SUM(fm.PASSENGERS)/1000000,2) AS TOTAL_PASSENGERS
+FROM Flight f
+JOIN Flightmetrics fm ON f.FLIGHT_ID = fm.FLIGHT_ID
+GROUP BY f.YEAR, f.MONTH
+ORDER BY f.YEAR, f.MONTH;
+
+
+
+### Assess flight frequency and identify high-traffic corridors.
+# To assess flight frequency and identify high-traffic corridors, we will:
+# 1.Count how often each route (origin → destination) appears — that’s flight frequency.
+# 2.Identify routes with the highest number of flights — these are high-traffic corridors.
+
+SELECT 
+    f.ORIGIN_AIRPORT_ID,
+    f.DEST_AIRPORT_ID,
+    a1.CITY_NAME AS ORIGIN_CITY,
+    a2.CITY_NAME AS DEST_CITY,
+    COUNT(*) AS FLIGHT_COUNT
+FROM Flight f
+JOIN Airport a1 ON f.ORIGIN_AIRPORT_ID = a1.AIRPORT_ID
+JOIN Airport a2 ON f.DEST_AIRPORT_ID = a2.AIRPORT_ID
+GROUP BY f.ORIGIN_AIRPORT_ID, f.DEST_AIRPORT_ID
+ORDER BY FLIGHT_COUNT DESC
+limit 10;
+
+## Los Angels is a part of The top 10 busiest air routes.
+
+select * from flight;
+select * from airport;
+
